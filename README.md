@@ -1,164 +1,103 @@
-# Buddy - Flutter App Setup Guide
+# Buddy
 
-## Overview
-This document describes the Firebase configuration and backend proxy contract for the Buddy Flutter app.
+A cross-platform mental wellness companion built with Flutter.
 
----
+Buddy combines mood check-ins, conversational support, and user-friendly wellness flows in a single mobile-first application, with optional backend proxy support for AI-powered chat.
 
-## Firebase Setup
+## Highlights
 
-### 1. Create Firebase Project
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project: `buddy-app`
-3. Enable Google Analytics (optional)
+- Mood check-in flow with local and backend-friendly data structures
+- Chat interface designed for supportive conversations
+- Authentication-ready architecture with Firebase integration
+- Modular feature-based Flutter code organization
+- Android, iOS, web, desktop scaffolding from one codebase
 
-### 2. Add Firebase to Android
-1. Go to Project Settings > Your apps > Android
-2. Add app package name: `com.buddy.buddy`
-3. Download `google-services.json`
-4. Place in `android/app/google-services.json`
+## Tech Stack
 
-### 3. Add Firebase to iOS  
-1. Go to Project Settings > Your apps > iOS
-2. Add app bundle id: `com.buddy.buddy`
-3. Download `GoogleService-Info.plist`
-4. Place in `ios/Runner/GoogleService-Info.plist`
+- Flutter + Dart
+- Riverpod (state management)
+- GoRouter (navigation)
+- Firebase (Auth / Firestore / Realtime DB)
+- Node.js backend proxy (`backend/`) for AI integrations
 
-### 4. Enable Firebase Auth
-1. Go to Authentication > Sign-in method
-2. Enable Email/Password
+## Project Structure
 
-### 5. Enable Cloud Firestore
-1. Go to Firestore Database
-2. Create database (start in test mode)
-3. Configure security rules for production
-
-### 6. Configure google-services.json
-Update `lib/core/constants/app_constants.dart` with your Firebase config:
-```dart
-static const String firebaseApiKey = 'YOUR_API_KEY';
-static const String firebaseProjectId = 'buddy-app';
-static const String firebaseStorageBucket = 'buddy-app.appspot.com';
-static const String firebaseMessagingSenderId = '000000000000';
-static const String firebaseAppId = '1:000000000000:android:0000000000000';
-static const String firebaseDatabaseUrl = 'https://buddy-app.firebaseio.com';
+```text
+lib/
+  app/                  # App bootstrap and router
+  core/                 # Theme, constants, shared network/widgets
+  features/             # Feature-first modules (auth, chat, mood, settings)
+  providers/            # Global state providers
+  models/               # Data models + generated serializers
+backend/                # Optional API proxy service
 ```
 
----
+## Prerequisites
 
-## Backend Proxy Contract
+- Flutter SDK (stable)
+- Dart SDK (bundled with Flutter)
+- Android Studio and/or Xcode for device builds
+- Node.js 18+ (only if running backend proxy)
 
-### Overview
-The chat feature uses a backend AI proxy service to handle LLM interactions. The proxy exposes REST APIs that the Flutter app calls.
-
-### API Endpoints
-
-#### POST /chat
-Send a message to the AI and get a response.
-
-**Request:**
-```json
-{
-  "message": "I'm feeling anxious today",
-  "userId": "user_123",
-  "context": {
-    "mood": "good",
-    "lastMoodEntry": "2024-01-15T10:30:00Z"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "reply": "I hear that you're feeling anxious. Would you like to talk about what's causing these feelings?",
-  "suggestions": ["Take deep breaths", "Share more details"],
-  "conversationId": "conv_abc123"
-}
-```
-
-#### GET /chat/{conversationId}
-Get AI response for an existing conversation.
-
-**Response:**
-```json
-{
-  "reply": "Thank you for sharing that with me.",
-  "timestamp": "2024-01-15T10:35:00Z"
-}
-```
-
-### Implementation
-Update `lib/core/constants/app_constants.dart` with your proxy URL:
-```dart
-static const String backendProxyBaseUrl = 'https://your-proxy.example.com';
-```
-
----
-
-## Firestore Data Models
-
-### mood_entries Collection
-```json
-{
-  "id": "uuid",
-  "userId": "firebase_user_uid",
-  "mood": 3,
-  "note": "Feeling okay today",
-  "tags": {"work": true},
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
-
-### users Collection
-```json
-{
-  "id": "firebase_user_uid",
-  "email": "user@example.com",
-  "displayName": "John",
-  "createdAt": "2024-01-01T00:00:00Z",
-  "lastLoginAt": "2024-01-15T10:00:00Z"
-}
-```
-
----
-
-## Next Steps
-
-### High Priority
-1. **Configure Firebase**: Add your Firebase config to `app_constants.dart`
-2. **Set up Backend Proxy**: Deploy the AI proxy service
-3. **Test Auth**: Verify email/password login works
-4. **Test Chat**: Verify messages send/receive correctly
-
-### Medium Priority
-1. **Notifications**: Add Firebase Cloud Messaging
-2. **Voice Calls**: Integrate WebRTC for voice calls
-3. **Analytics**: Add Firebase Analytics events
-
-### Low Priority
-1. **Dark Mode**: Add theme switching
-2. **Widgets**: Add home screen widgets
-3. **Push Notifications**: Real-time alerts
-
----
-
-## Build & Run
+## Quick Start
 
 ```bash
-cd buddy_flutter
 flutter pub get
 flutter run
 ```
 
-## Build APK
+## Environment Setup
+
+### Mobile App (Firebase)
+
+1. Create a Firebase project.
+2. Register Android app `com.buddy.buddy` and download `google-services.json`.
+3. Register iOS app `com.buddy.buddy` and download `GoogleService-Info.plist`.
+4. Place files in:
+   - `android/app/google-services.json`
+   - `ios/Runner/GoogleService-Info.plist`
+
+These files are intentionally gitignored and must not be committed.
+
+### Backend Proxy (Optional)
+
 ```bash
-flutter build apk --debug
-flutter build apk --release
+cd backend
+cp .env.example .env
+npm install
+npm run start
 ```
 
-## Build iOS
+Update `.env` values for your provider key and model.
+
+## Build Commands
+
 ```bash
-flutter build ios --debug
+# Android
+flutter build apk --release
+
+# iOS
 flutter build ios --release
+
+# Web
+flutter build web
 ```
+
+## Development Notes
+
+- Keep production secrets in local env files or secret managers.
+- Regenerate model files after model updates:
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
+
+## Roadmap
+
+- Voice support integration
+- Notifications and reminders
+- Enhanced analytics and progress insights
+
+## License
+
+This repository is maintained by the project owner. Add a license file if you plan to distribute it publicly under a specific license.
