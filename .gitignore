@@ -47,6 +47,10 @@ app.*.map.json
 # Environment secrets
 **/.env
 
+# Node build artifacts
+**/node_modules/
+**/dist/
+
 # Firebase secrets
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist

@@ -3,15 +3,11 @@ import express from 'express';
 import cors from 'cors';
 
 const app = express();
-const PORT = Number(process.env.PORT || 8080);
+const port = process.env.PORT || 8080;
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const openRouterModel = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
-app.use(
-  cors({
-    origin: true,
-  }),
-);
+app.use(cors());
 app.use(express.json());
 
 app.get('/', (_req, res) => {
@@ -108,6 +104,6 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Buddy backend running on port ${PORT}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Buddy backend running on port ${port}`);
 });
