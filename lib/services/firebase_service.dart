@@ -101,6 +101,8 @@ class ApiProxyService {
     required String message,
     String? userId,
     Map<String, dynamic>? context,
+    List<Map<String, String>>? history,
+    String? firstName,
   }) async {
     try {
       final response = await _dio.post(
@@ -109,6 +111,10 @@ class ApiProxyService {
           'message': message,
           ...?userId == null ? null : {'userId': userId},
           ...?context == null ? null : {'context': context},
+          ...?history == null || history.isEmpty ? null : {'history': history},
+          ...?firstName == null || firstName.trim().isEmpty
+              ? null
+              : {'firstName': firstName.trim()},
         },
       );
       return response.data as Map<String, dynamic>;
