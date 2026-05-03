@@ -14,7 +14,7 @@ class AppConstants {
 
   static const String backendProxyBaseUrl = String.fromEnvironment(
     'BUDDY_API_BASE_URL',
-    defaultValue: 'http://localhost:8080',
+    defaultValue: 'https://ai-mental-health-companion-hjxf.onrender.com',
   );
 
   static const Duration animationDuration = Duration(milliseconds: 300);

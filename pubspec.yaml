@@ -57,6 +57,9 @@ dependencies:
   
   # Network
   dio: ^5.8.0
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.0.2
+  permission_handler: ^11.3.1
   
   # UI Components
   flutter_svg: ^2.0.17
@@ -72,6 +75,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
   
   # Code Generation
   build_runner: ^2.4.15
@@ -92,6 +96,17 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/buddy_logo.png
+    - assets/images/chat_room_bg.jpg
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/buddy_logo.png"
+  adaptive_icon_background: "#F4FFF6"
+  adaptive_icon_foreground: "assets/images/buddy_logo.png"
 
   # To add assets to your application, add an assets section, like this:
   # assets:

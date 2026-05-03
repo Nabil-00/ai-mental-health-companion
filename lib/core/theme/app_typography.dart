@@ -7,8 +7,9 @@ class AppTypography {
   static const TextStyle heading = TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.bold,
+    letterSpacing: -0.5,
     color: AppColors.textPrimary,
-    height: 1.3,
+    height: 1.2,
   );
 
   static const TextStyle heading2 = TextStyle(
@@ -19,29 +20,29 @@ class AppTypography {
   );
 
   static const TextStyle heading3 = TextStyle(
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
-    height: 1.4,
+    height: 1.3,
   );
 
   static const TextStyle body = TextStyle(
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: FontWeight.normal,
     color: AppColors.textPrimary,
-    height: 1.5,
+    height: 1.47,
   );
 
   static const TextStyle bodySmall = TextStyle(
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.normal,
     color: AppColors.textPrimary,
-    height: 1.5,
+    height: 1.47,
   );
 
   static const TextStyle caption = TextStyle(
     fontSize: 12,
-    fontWeight: FontWeight.w300,
+    fontWeight: FontWeight.w400,
     color: AppColors.textSecondary,
     height: 1.4,
   );

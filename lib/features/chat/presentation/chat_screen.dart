@@ -1,11 +1,14 @@
+import 'package:buddy/core/theme/app_colors.dart';
+import 'package:buddy/core/theme/app_typography.dart';
+import 'package:buddy/core/widgets/buddy_avatar.dart';
+import 'package:buddy/core/widgets/chat_bubble.dart';
+import 'package:buddy/providers/chat_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:buddy/core/theme/app_colors.dart';
-import 'package:buddy/core/theme/app_spacing.dart';
-import 'package:buddy/core/theme/app_typography.dart';
-import 'package:buddy/providers/chat_provider.dart';
-import 'package:buddy/models/chat_message_model.dart';
+import 'dart:ui';
+
+import '../../../models/chat_message_model.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -14,369 +17,271 @@ class ChatScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends ConsumerState<ChatScreen> {
-  final _messageController = TextEditingController();
-  final _scrollController = ScrollController();
+class _ChatScreenState extends ConsumerState<ChatScreen>
+    with SingleTickerProviderStateMixin {
+  final _controller = TextEditingController();
+  final _scroll = ScrollController();
+  late final AnimationController _typingController;
+
+  @override
+  void initState() {
+    super.initState();
+    _typingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
 
   @override
   void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
+    _typingController.dispose();
+    _controller.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
-  Future<void> _sendMessage() async {
-    final text = _messageController.text.trim();
+  Future<void> _send() async {
+    final text = _controller.text.trim();
     if (text.isEmpty) return;
-
-    _messageController.clear();
+    _controller.clear();
     await ref.read(chatNotifierProvider.notifier).sendMessage(text);
-    _scrollToBottom();
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final messages = ref.watch(chatMessagesProvider);
-    final isLoading = ref.watch(chatLoadingProvider);
+    final loading = ref.watch(chatLoadingProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final overlayColor = isDark
+        ? const Color(0xFF071912).withValues(alpha: 0.68)
+        : const Color(0xFFFFFCF7).withValues(alpha: 0.62);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.surfaceSoft, AppColors.background],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/chat_room_bg.jpg',
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _BuddyHeader(onVoicePressed: () => context.push('/voice')),
-              Expanded(
-                child: messages.isEmpty
-                    ? _EmptyChatState()
-                    : ListView.builder(
-                        controller: _scrollController,
-                        keyboardDismissBehavior:
-                            ScrollViewKeyboardDismissBehavior.onDrag,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.md,
-                        ),
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          final message = messages[index];
-                          return _ChatBubble(message: message);
-                        },
+          Positioned.fill(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 2.2, sigmaY: 2.2),
+                child: Container(color: overlayColor),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  margin: const EdgeInsets.fromLTRB(10, 10, 10, 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface.withValues(
+                      alpha: isDark ? 0.74 : 0.88,
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: AppColors.border.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: context.pop,
+                        icon: const Icon(Icons.arrow_back_rounded),
                       ),
-              ),
-              if (isLoading) _TypingIndicator(),
-              ChatInputBar(
-                controller: _messageController,
-                onSend: _sendMessage,
-                onMicPressed: () => context.push('/voice'),
-              ),
-            ],
+                      const BuddyAvatar(),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Buddy',
+                              style: AppTypography.body.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.online,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text('Online', style: AppTypography.caption),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => context.push('/voice'),
+                        icon: const Icon(
+                          Icons.call_rounded,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: messages.isEmpty
+                      ? const _EmptyState()
+                      : ListView.builder(
+                          controller: _scroll,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          itemCount: messages.length,
+                          itemBuilder: (_, i) {
+                            final m = messages[i];
+                            return ChatBubble(
+                              text: m.content,
+                              isUser: m.sender == MessageSender.user,
+                            );
+                          },
+                        ),
+                ),
+                if (loading) _TypingIndicator(controller: _typingController),
+                _InputBar(controller: _controller, onSend: _send),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _BuddyHeader extends StatelessWidget {
-  final VoidCallback onVoicePressed;
-
-  const _BuddyHeader({required this.onVoicePressed});
+class _InputBar extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onSend;
+  const _InputBar({required this.controller, required this.onSend});
 
   @override
   Widget build(BuildContext context) {
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+      margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      padding: EdgeInsets.only(
+        left: 12,
+        right: 12,
+        top: 8,
+        bottom: (viewInsets > 0 ? viewInsets : bottomInset) + 8,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: [
+        color: AppColors.surface.withValues(alpha: isDark ? 0.8 : 0.9),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Color(0x0F000000),
+            blurRadius: 12,
+            offset: Offset(0, 3),
           ),
         ],
       ),
       child: Row(
         children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              style: AppTypography.body,
+              maxLines: 4,
+              minLines: 1,
+              decoration: InputDecoration(
+                hintText: "What's on your mind?",
+                border: InputBorder.none,
+                hintStyle: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              onSubmitted: (_) => onSend(),
+            ),
+          ),
+          const SizedBox(width: 8),
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: const Icon(
-              Icons.psychology,
+            decoration: const BoxDecoration(
               color: AppColors.primary,
-              size: 22,
+              shape: BoxShape.circle,
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Buddy',
-                  style: AppTypography.bodySmall.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  "I'm here to listen",
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.mic),
-            color: AppColors.primary,
-            onPressed: onVoicePressed,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ChatInputBar extends StatelessWidget {
-  final TextEditingController controller;
-  final VoidCallback onSend;
-  final VoidCallback onMicPressed;
-
-  const ChatInputBar({
-    super.key,
-    required this.controller,
-    required this.onSend,
-    required this.onMicPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      padding: const EdgeInsets.only(
-        left: AppSpacing.md,
-        right: AppSpacing.md,
-        top: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(
-          bottom: keyboardInset > 0 ? AppSpacing.sm : AppSpacing.md,
-        ),
-        child: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.mic_outlined),
-              color: AppColors.textSecondary,
-              onPressed: onMicPressed,
-            ),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  hintText: 'Message Buddy...',
-                  hintStyle: AppTypography.bodySmall.copyWith(
-                    color: AppColors.placeholder,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.xl),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: AppColors.background,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                ),
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend(),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              icon: const Icon(Icons.send),
-              color: AppColors.primary,
+            child: IconButton(
               onPressed: onSend,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyChatState extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(AppRadius.xl),
-              ),
-              child: const Icon(
-                Icons.psychology,
-                size: 40,
-                color: AppColors.primary,
+              icon: const Icon(
+                Icons.arrow_upward_rounded,
+                color: Colors.white,
+                size: 18,
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Hi, how are you feeling today?',
-              style: AppTypography.heading3,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              "I'm here to support you",
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _TypingIndicator extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(AppRadius.md),
-                topRight: const Radius.circular(AppRadius.md),
-                bottomRight: const Radius.circular(AppRadius.md),
-                bottomLeft: Radius.zero,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text('Buddy is typing...', style: AppTypography.caption),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  final ChatMessageModel message;
-
-  const _ChatBubble({required this.message});
+  final AnimationController controller;
+  const _TypingIndicator({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    final isUser = message.sender == MessageSender.user;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Align(
-        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+        alignment: Alignment.centerLeft,
         child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.75,
-          ),
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: isUser ? AppColors.primary : AppColors.surface,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(AppRadius.lg),
-              topRight: Radius.circular(AppRadius.lg),
-              bottomRight: isUser
-                  ? const Radius.circular(4)
-                  : Radius.circular(AppRadius.lg),
-              bottomLeft: !isUser
-                  ? const Radius.circular(4)
-                  : Radius.circular(AppRadius.lg),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: AppColors.surface.withValues(alpha: isDark ? 0.78 : 0.9),
+            borderRadius: BorderRadius.circular(18),
           ),
-          child: Text(
-            message.content,
-            style: AppTypography.bodySmall.copyWith(
-              color: isUser ? Colors.white : AppColors.textPrimary,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (int i = 0; i < 3; i++)
+                AnimatedBuilder(
+                  animation: controller,
+                  builder: (_, child) {
+                    final t = (controller.value + (i * 0.2)) % 1;
+                    final s = 0.7 + (0.5 * (1 - (t - 0.5).abs() * 2));
+                    return Transform.scale(
+                      scale: s,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: const BoxDecoration(
+                          color: AppColors.textSecondary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
           ),
         ),
       ),
@@ -384,47 +289,67 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
-class MoodContextPlaceholder extends StatelessWidget {
-  final String? currentMood;
-  final String? targetMood;
+class _EmptyState extends StatefulWidget {
+  const _EmptyState();
 
-  const MoodContextPlaceholder({super.key, this.currentMood, this.targetMood});
+  @override
+  State<_EmptyState> createState() => _EmptyStateState();
+}
+
+class _EmptyStateState extends State<_EmptyState>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (currentMood == null && targetMood == null) {
-      return const SizedBox.shrink();
-    }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (currentMood != null) ...[
-            Icon(Icons.favorite, size: 12, color: AppColors.primary),
-            const SizedBox(width: 4),
-            Text(currentMood!, style: AppTypography.caption),
-          ],
-          if (currentMood != null && targetMood != null)
-            const SizedBox(width: AppSpacing.sm),
-          if (targetMood != null) ...[
-            Icon(Icons.arrow_forward, size: 12, color: AppColors.accent),
-            const SizedBox(width: 4),
-            Text(targetMood!, style: AppTypography.caption),
-          ],
-        ],
+    return Center(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (_, child) {
+          final scale = 0.95 + (_controller.value * 0.08);
+          return Transform.scale(
+            scale: scale,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const BuddyAvatar(size: 72),
+                const SizedBox(height: 16),
+                Text(
+                  "Hey, I'm Buddy.",
+                  style: AppTypography.heading3.copyWith(
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "What's on your mind?",
+                  style: AppTypography.body.copyWith(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.8)
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

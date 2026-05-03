@@ -1,10 +1,9 @@
+import 'package:buddy/core/theme/app_colors.dart';
+import 'package:buddy/core/theme/app_typography.dart';
+import 'package:buddy/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:buddy/core/theme/app_colors.dart';
-import 'package:buddy/core/theme/app_spacing.dart';
-import 'package:buddy/core/theme/app_typography.dart';
-import 'package:buddy/providers/auth_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -13,65 +12,100 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..forward();
+    _goNext();
   }
 
-  Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(seconds: 1));
+  Future<void> _goNext() async {
+    await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-
     final user = ref.read(userProvider);
-    if (user != null) {
-      context.go('/home');
-    } else {
-      context.go('/login');
-    }
+    context.go(user != null ? '/home' : '/login');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final fade = Curves.easeOut.transform(_controller.value);
+            final scale = 0.8 + (_controller.value * 0.2);
+            return Opacity(
+              opacity: fade,
+              child: Transform.scale(scale: scale, child: child),
+            );
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 104,
+                height: 104,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      blurRadius: 24,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.all(10),
+                    child: Image.asset(
+                      'assets/images/buddy_logo.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.psychology,
-                size: 56,
-                color: AppColors.primary,
+              const SizedBox(height: 24),
+              const Text(
+                'buddy',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: 2,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const Text('Buddy', style: AppTypography.heading),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Your Mental Health Companion',
-              style: AppTypography.caption.copyWith(
-                color: AppColors.textSecondary,
+              const SizedBox(height: 8),
+              Text(
+                'your space to reflect',
+                style: AppTypography.body.copyWith(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: 14,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

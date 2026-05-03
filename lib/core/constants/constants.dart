@@ -9,7 +9,8 @@ class AppConstants {
   static const String firebaseAppId = '1:000000000000:android:0000000000000';
   static const String firebaseDatabaseUrl = 'https://buddy-app.firebaseio.com';
 
-  static const String backendProxyBaseUrl = 'http://localhost:8080';
+  static const String backendProxyBaseUrl =
+      'https://ai-mental-health-companion-hjxf.onrender.com';
   static const String aiProxyEndpoint = '/api/ai/chat';
 
   static const Duration animationDuration = Duration(milliseconds: 300);
